@@ -1,0 +1,21 @@
+schema = 3
+
+[mod]
+  [mod."github.com/fatih/color"]
+    version = "v1.7.0"
+    hash = "sha256-4In7ef7it7d+6oGUJ3pkD0V+lsL40hVtYdy2KD2ovn0="
+  [mod."github.com/mattn/go-colorable"]
+    version = "v0.0.9"
+    hash = "sha256-fVPF8VxbdggLAZnaexMl6Id1WjXKImzVySxKfa+ukts="
+  [mod."github.com/mattn/go-isatty"]
+    version = "v0.0.4"
+    hash = "sha256-PI32zFAKvQpIFSfuvIFeL4Orxr696dAxkokrzIQUSX8="
+  [mod."github.com/nwidger/jsoncolor"]
+    version = "v0.0.0-20170215171346-75a6de4340e5"
+    hash = "sha256-cVoRp6Vd+s+aBClMzXGIaGN+m83eXdNdzw9nGbsgOyo="
+  [mod."github.com/pkg/errors"]
+    version = "v0.8.0"
+    hash = "sha256-5d5y6os/w8geLyptFuf4DL66xQ4YD9qmoeLCF441MQA="
+  [mod."golang.org/x/sys"]
+    version = "v0.0.0-20220412211240-33da011f77ad"
+    hash = "sha256-/rLhQdPCfsSVS1Lgze1MpZBlf0XZed7TjcQpiI2n4OU="

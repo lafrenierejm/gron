@@ -6,3 +6,7 @@ gron
 cpu.out
 gron.test
 
+# Nix
+/.direnv
+/.pre-commit-config.yaml
+/result
