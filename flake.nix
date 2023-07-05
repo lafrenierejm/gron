@@ -61,7 +61,6 @@
             package = pkgs.treefmt;
             flakeCheck = false; # use pre-commit's check instead
             programs.gofmt.enable = true;
-            programs.nixfmt.enable = true;
           };
 
           pre-commit = {
@@ -69,7 +68,10 @@
             settings.hooks = {
               markdownlint.enable = true;
               treefmt.enable = true;
-              typos.enable = true;
+              typos = {
+                enable = true;
+                excludes = [ "ADVANCED.mkd" "testdata/.*" "ungron_test.go" ];
+              };
             };
           };
 
@@ -84,6 +86,7 @@
               go-tools
               gomod2nix
               nixfmt
+              typos
             ];
           };
         };
