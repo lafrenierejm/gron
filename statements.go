@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,7 +13,7 @@ import (
 // A statement is a slice of tokens representing an assignment statement.
 // An assignment statement is something like:
 //
-//   json.city = "Leeds";
+//	json.city = "Leeds";
 //
 // Where 'json', '.', 'city', '=', '"Leeds"' and ';' are discrete tokens.
 // Statements are stored as tokens to make sorting more efficient, and so
@@ -200,7 +199,7 @@ func statementFromJSONSpec(str string) (statement, error) {
 	}
 
 	// We'll append one initial token, then 3 tokens for each element of a,
-	// then 3 closing tokens, that's alltogether 3*len(a)+4.
+	// then 3 closing tokens, that's altogether 3*len(a)+4.
 	s = make(statement, 0, 3*len(a)+4)
 	s = append(s, token{"json", typBare})
 	for _, e := range a {
@@ -385,11 +384,9 @@ func (ss statements) Contains(search statement) bool {
 
 // statementsFromJSON takes an io.Reader containing JSON
 // and returns statements or an error on failure
-func statementsFromJSON(r io.Reader, prefix statement) (statements, error) {
+func statementsFromJSON(r decoder, prefix statement) (statements, error) {
 	var top interface{}
-	d := json.NewDecoder(r)
-	d.UseNumber()
-	err := d.Decode(&top)
+	err := r.Decode(&top)
 	if err != nil {
 		return nil, err
 	}
@@ -408,6 +405,16 @@ func (ss *statements) fill(prefix statement, v interface{}) {
 	// Recurse into objects and arrays
 	switch vv := v.(type) {
 
+	case map[interface{}]interface{}:
+		// It's an object
+		for k, sub := range vv {
+			ks := fmt.Sprintf("%v", k)
+			if validIdentifier(ks) {
+				ss.fill(prefix.withBare(ks), sub)
+			} else {
+				ss.fill(prefix.withQuotedKey(ks), sub)
+			}
+		}
 	case map[string]interface{}:
 		// It's an object
 		for k, sub := range vv {
