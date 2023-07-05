@@ -67,6 +67,7 @@
           pre-commit = {
             check.enable = true;
             settings.hooks = {
+              markdownlint.enable = true;
               treefmt.enable = true;
               typos.enable = true;
             };
