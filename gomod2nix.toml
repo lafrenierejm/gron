@@ -19,3 +19,6 @@ schema = 3
   [mod."golang.org/x/sys"]
     version = "v0.10.0"
     hash = "sha256-eeifyHj8IcTAruekJAGMCcjFyU2GAIAgvxS36hPZM1U="
+  [mod."gopkg.in/yaml.v3"]
+    version = "v3.0.1"
+    hash = "sha256-FqL9TKYJ0XkNwJFnq9j0VvJ5ZUU1RvH/52h/f5bkYAU="
