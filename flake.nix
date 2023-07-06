@@ -60,7 +60,10 @@
             projectRootFile = ".git/config";
             package = pkgs.treefmt;
             flakeCheck = false; # use pre-commit's check instead
-            programs.gofmt.enable = true;
+            programs = {
+              gofmt.enable = true;
+              prettier.enable = true;
+            };
           };
 
           pre-commit = {
@@ -80,12 +83,13 @@
             inputsFrom = [ config.pre-commit.devShell ];
             buildInputs = with pkgs; [
               go
+              go-tools
               godef
+              gomod2nix
               gopls
               gotools
-              go-tools
-              gomod2nix
               nixfmt
+              nodePackages.prettier
               typos
             ];
           };
