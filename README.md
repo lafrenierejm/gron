@@ -1,9 +1,8 @@
 # gron
 
-Make JSON greppable!
+Make JSON and YAML greppable!
 
-`gron` transforms JSON into discrete assignments to make it easier to `grep` for what you want and see the absolute "path" to it.
-It eases the exploration of APIs that return large blobs of JSON but have terrible documentation.
+`gron` transforms JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute "path" to it.
 
 ```console
 $ gron "https://api.github.com/repos/tomnomnom/gron/commits?per_page=1" | fgrep "commit.author"
@@ -252,6 +251,7 @@ Options:
   -s, --stream     Treat each line of input as a separate JSON object
   -k, --insecure   Disable certificate validation
   -j, --json       Represent gron data as JSON stream
+  -y, --yaml       Treat input as YAML instead of JSON
       --no-sort    Don't sort output (faster)
       --version    Print version information
 
