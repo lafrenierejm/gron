@@ -1,5 +1,0 @@
-#!/bin/sh
-PROJDIR=$(cd `dirname $0`/.. && pwd)
-cd $PROJDIR
-go build
-./gron testdata/one.json
