@@ -64,6 +64,16 @@
               gofmt.enable = true;
               prettier.enable = true;
             };
+            settings.formatter = {
+              prettier = {
+                excludes = [
+                  "testdata/large-line.json"
+                  "testdata/long-stream.json"
+                  "testdata/scalar-stream.json"
+                  "testdata/stream.json"
+                ];
+              };
+            };
           };
 
           pre-commit = {
