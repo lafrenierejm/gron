@@ -2,7 +2,7 @@
   "one": 1,
   "two": 2.2,
   "three-b": "3",
-  "four": [1,2,3,4],
+  "four": [1, 2, 3, 4],
   "five": {
     "alpha": ["fo", "fum"],
     "beta": {
