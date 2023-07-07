@@ -138,6 +138,7 @@ func TestUngron(t *testing.T) {
 		{"testdata/grep-separators.gron", "testdata/grep-separators.json"},
 		{"testdata/github.gron", "testdata/github.json"},
 		{"testdata/large-line.gron", "testdata/large-line.json"},
+		{"testdata/duplicate-numeric.gron", "testdata/duplicate-numeric.json"},
 	}
 
 	for _, c := range cases {
