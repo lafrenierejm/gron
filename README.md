@@ -213,7 +213,7 @@ json.likes[2] = "meat";
 ```
 
 > **Note** that the array indices jump directly from 0 to 2 because we're excluding the `"cheese"` value via `grep -v`.
-  
+
 Now add `gron --ungron` to the end of the above pipeline to get JSON output:
 
 ```console
@@ -285,7 +285,7 @@ There are a lot of people who work with JSON who don't have PHP installed.
 
 ### Why shouldn't I just use `jq`?
 
-[`jq`](https://stedolan.github.io/jq/) is *awesome*, and a lot more powerful than gron, but with that power comes complexity.
+[`jq`](https://stedolan.github.io/jq/) is _awesome_, and a lot more powerful than gron, but with that power comes complexity.
 `gron` aims to make it easier to use the tools you already know, like `grep` and `sed`.
 
 `gron`'s primary purpose is to make it easy to find the path to a value in a deeply nested JSON blob when you don't already know the structure;
