@@ -1,0 +1,3 @@
+json = {};
+json.numeric = 0;
+json.numeric = 1;
