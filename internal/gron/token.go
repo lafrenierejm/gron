@@ -1,4 +1,4 @@
-package main
+package gron
 
 import (
 	"bytes"
@@ -7,72 +7,72 @@ import (
 	"unicode"
 )
 
-// A token is a chunk of text from a statement with a type
-type token struct {
-	text string
-	typ  tokenTyp
+// A Token is a chunk of text from a statement with a type
+type Token struct {
+	Text string
+	Typ  TokenTyp
 }
 
-// A tokenTyp identifies what kind of token something is
-type tokenTyp int
+// A TokenTyp identifies what kind of token something is
+type TokenTyp int
 
 const (
 	// A bare word is a unquoted key; like 'foo' in json.foo = 1;
-	typBare tokenTyp = iota
+	TypBare TokenTyp = iota
 
 	// Numeric key; like '2' in json[2] = "foo";
-	typNumericKey
+	TypNumericKey
 
 	// A quoted key; like 'foo bar' in json["foo bar"] = 2;
-	typQuotedKey
+	TypQuotedKey
 
 	// Punctuation types
-	typDot    // .
-	typLBrace // [
-	typRBrace // ]
-	typEquals // =
-	typSemi   // ;
-	typComma  // ,
+	TypDot    // .
+	TypLBrace // [
+	TypRBrace // ]
+	TypEquals // =
+	TypSemi   // ;
+	TypComma  // ,
 
 	// Value types
-	typString      // "foo"
-	typNumber      // 4
-	typTrue        // true
-	typFalse       // false
-	typNull        // null
-	typEmptyArray  // []
-	typEmptyObject // {}
+	TypString      // "foo"
+	TypNumber      // 4
+	TypTrue        // true
+	TypFalse       // false
+	TypNull        // null
+	TypEmptyArray  // []
+	TypEmptyObject // {}
 
 	// Ignored token
-	typIgnored
+	TypIgnored
 
 	// Error token
-	typError
+	TypError
 )
 
 // a sprintFn adds color to its input
 type sprintFn func(...interface{}) string
 
 // mapping of token types to the appropriate color sprintFn
-var sprintFns = map[tokenTyp]sprintFn{
-	typBare:        bareColor.SprintFunc(),
-	typNumericKey:  numColor.SprintFunc(),
-	typQuotedKey:   strColor.SprintFunc(),
-	typLBrace:      braceColor.SprintFunc(),
-	typRBrace:      braceColor.SprintFunc(),
-	typString:      strColor.SprintFunc(),
-	typNumber:      numColor.SprintFunc(),
-	typTrue:        boolColor.SprintFunc(),
-	typFalse:       boolColor.SprintFunc(),
-	typNull:        boolColor.SprintFunc(),
-	typEmptyArray:  braceColor.SprintFunc(),
-	typEmptyObject: braceColor.SprintFunc(),
+var sprintFns = map[TokenTyp]sprintFn{
+	TypBare:        bareColor.SprintFunc(),
+	TypNumericKey:  numColor.SprintFunc(),
+	TypQuotedKey:   strColor.SprintFunc(),
+	TypLBrace:      braceColor.SprintFunc(),
+	TypRBrace:      braceColor.SprintFunc(),
+	TypString:      strColor.SprintFunc(),
+	TypNumber:      numColor.SprintFunc(),
+	TypTrue:        boolColor.SprintFunc(),
+	TypFalse:       boolColor.SprintFunc(),
+	TypNull:        boolColor.SprintFunc(),
+	TypEmptyArray:  braceColor.SprintFunc(),
+	TypEmptyObject: braceColor.SprintFunc(),
 }
 
 // isValue returns true if the token is a valid value type
-func (t token) isValue() bool {
-	switch t.typ {
-	case typString, typNumber, typTrue, typFalse, typNull, typEmptyArray, typEmptyObject:
+func (t Token) isValue() bool {
+	switch t.Typ {
+	case TypString, TypNumber, TypTrue, TypFalse, TypNull, TypEmptyArray, TypEmptyObject:
 		return true
 	default:
 		return false
@@ -80,9 +80,9 @@ func (t token) isValue() bool {
 }
 
 // isPunct returns true if the token is a punctuation type
-func (t token) isPunct() bool {
-	switch t.typ {
-	case typDot, typLBrace, typRBrace, typEquals, typSemi, typComma:
+func (t Token) isPunct() bool {
+	switch t.Typ {
+	case TypDot, TypLBrace, TypRBrace, TypEquals, TypSemi, TypComma:
 		return true
 	default:
 		return false
@@ -90,20 +90,20 @@ func (t token) isPunct() bool {
 }
 
 // format returns the formatted version of the token text
-func (t token) format() string {
-	if t.typ == typEquals {
-		return " " + t.text + " "
+func (t Token) format() string {
+	if t.Typ == TypEquals {
+		return " " + t.Text + " "
 	}
-	return t.text
+	return t.Text
 }
 
 // formatColor returns the colored formatted version of the token text
-func (t token) formatColor() string {
-	text := t.text
-	if t.typ == typEquals {
+func (t Token) formatColor() string {
+	text := t.Text
+	if t.Typ == TypEquals {
 		text = " " + text + " "
 	}
-	fn, ok := sprintFns[t.typ]
+	fn, ok := sprintFns[t.Typ]
 	if ok {
 		return fn(text)
 	}
@@ -113,30 +113,30 @@ func (t token) formatColor() string {
 
 // valueTokenFromInterface takes any valid value and
 // returns a value token to represent it
-func valueTokenFromInterface(v interface{}) token {
+func valueTokenFromInterface(v interface{}) Token {
 	switch vv := v.(type) {
 
 	case map[interface{}]interface{}:
-		return token{"{}", typEmptyObject}
+		return Token{"{}", TypEmptyObject}
 	case map[string]interface{}:
-		return token{"{}", typEmptyObject}
+		return Token{"{}", TypEmptyObject}
 	case []interface{}:
-		return token{"[]", typEmptyArray}
+		return Token{"[]", TypEmptyArray}
 	case int, float64:
-		return token{fmt.Sprintf("%v", vv), typNumber}
+		return Token{fmt.Sprintf("%v", vv), TypNumber}
 	case json.Number:
-		return token{vv.String(), typNumber}
+		return Token{vv.String(), TypNumber}
 	case string:
-		return token{quoteString(vv), typString}
+		return Token{quoteString(vv), TypString}
 	case bool:
 		if vv {
-			return token{"true", typTrue}
+			return Token{"true", TypTrue}
 		}
-		return token{"false", typFalse}
+		return Token{"false", TypFalse}
 	case nil:
-		return token{"null", typNull}
+		return Token{"null", TypNull}
 	default:
-		return token{"", typError}
+		return Token{"", TypError}
 	}
 }
 

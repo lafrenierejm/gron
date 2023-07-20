@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -15,7 +12,11 @@ import (
 	"github.com/mattn/go-colorable"
 	"github.com/nwidger/jsoncolor"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
+
+	"bufio"
+	"bytes"
+	"encoding/json"
+	internal "github.com/lafrenierejm/gron/internal/gron"
 )
 
 // Exit codes
@@ -176,13 +177,13 @@ func main() {
 	}
 
 	// Pick the appropriate action: gron, ungron, gronValues, or gronStream
-	var a actionFn = gron
+	var a internal.ActionFn = internal.Gron
 	if ungronFlag {
-		a = ungron
+		a = internal.Ungron
 	} else if valuesFlag {
 		a = gronValues
 	} else if streamFlag {
-		a = gronStream
+		a = internal.GronStream
 	}
 	exitCode, err := a(rawInput, colorable.NewColorableStdout(), opts)
 
@@ -193,35 +194,16 @@ func main() {
 	os.Exit(exitOK)
 }
 
-// an actionFn represents a main action of the program, it accepts
-// an input, output and a bitfield of options; returning an exit
-// code and any error that occurred
-type actionFn func(io.Reader, io.Writer, int) (int, error)
-
-type decoder interface {
-	Decode(interface{}) error
-}
-
-func makeDecoder(r io.Reader, opts int) decoder {
-	if opts&optYAML > 0 {
-		return yaml.NewDecoder(r)
-	} else {
-		d := json.NewDecoder(r)
-		d.UseNumber()
-		return d
-	}
-}
-
 // gron is the default action. Given JSON as the input it returns a list
 // of assignment statements. Possible options are optNoSort and optMonochrome
 func gron(r io.Reader, w io.Writer, opts int) (int, error) {
 	var err error
 
-	var conv statementconv
+	var conv internal.StatementConv
 	if opts&optMonochrome > 0 {
-		conv = statementToString
+		conv = internal.StatementToString
 	} else {
-		conv = statementToColorString
+		conv = internal.StatementToColorString
 	}
 
 	top := "json"
@@ -229,7 +211,7 @@ func gron(r io.Reader, w io.Writer, opts int) (int, error) {
 		top = "yaml"
 	}
 
-	ss, err := statementsFromJSON(makeDecoder(r, opts), statement{{top, typBare}})
+	ss, err := internal.StatementsFromJSON(internal.MakeDecoder(r, opts&optYAML), internal.Statement{{top, internal.TypBare}})
 	if err != nil {
 		goto out
 	}
@@ -242,7 +224,7 @@ func gron(r io.Reader, w io.Writer, opts int) (int, error) {
 
 	for _, s := range ss {
 		if opts&optJSON > 0 {
-			s, err = s.jsonify()
+			s, err = s.Jsonify()
 			if err != nil {
 				goto out
 			}
@@ -267,34 +249,34 @@ func gronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 	var sc *bufio.Scanner
 	var buf []byte
 
-	var conv func(s statement) string
+	var conv func(s internal.Statement) string
 	if opts&optMonochrome > 0 {
-		conv = statementToString
+		conv = internal.StatementToString
 	} else {
-		conv = statementToColorString
+		conv = internal.StatementToColorString
 	}
 
 	// Helper function to make the prefix statements for each line
-	makePrefix := func(index int) statement {
-		return statement{
-			{"json", typBare},
-			{"[", typLBrace},
-			{fmt.Sprintf("%d", index), typNumericKey},
-			{"]", typRBrace},
+	makePrefix := func(index int) internal.Statement {
+		return internal.Statement{
+			{"json", internal.TypBare},
+			{"[", internal.TypLBrace},
+			{fmt.Sprintf("%d", index), internal.TypNumericKey},
+			{"]", internal.TypRBrace},
 		}
 	}
 
 	// The first line of output needs to establish that the top-level
 	// thing is actually an array...
-	top := statement{
-		{"json", typBare},
-		{"=", typEquals},
-		{"[]", typEmptyArray},
-		{";", typSemi},
+	top := internal.Statement{
+		{"json", internal.TypBare},
+		{"=", internal.TypEquals},
+		{"[]", internal.TypEmptyArray},
+		{";", internal.TypSemi},
 	}
 
 	if opts&optJSON > 0 {
-		top, err = top.jsonify()
+		top, err = top.Jsonify()
 		if err != nil {
 			goto out
 		}
@@ -309,10 +291,10 @@ func gronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 	i = 0
 	for sc.Scan() {
 
-		d := makeDecoder(bytes.NewBuffer(sc.Bytes()), opts)
+		d := internal.MakeDecoder(bytes.NewBuffer(sc.Bytes()), opts)
 
-		var ss statements
-		ss, err = statementsFromJSON(d, makePrefix(i))
+		var ss internal.Statements
+		ss, err = internal.StatementsFromJSON(d, makePrefix(i))
 		i++
 		if err != nil {
 			goto out
@@ -326,7 +308,7 @@ func gronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 
 		for _, s := range ss {
 			if opts&optJSON > 0 {
-				s, err = s.jsonify()
+				s, err = s.Jsonify()
 				if err != nil {
 					goto out
 				}
@@ -351,32 +333,32 @@ out:
 // it returns JSON. The only option is optMonochrome
 func ungron(r io.Reader, w io.Writer, opts int) (int, error) {
 	scanner := bufio.NewScanner(r)
-	var maker statementmaker
+	var maker internal.StatementMaker
 
 	// Allow larger internal buffer of the scanner (min: 64KiB ~ max: 1MiB)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 
 	if opts&optJSON > 0 {
-		maker = statementFromJSONSpec
+		maker = internal.StatementFromJSONSpec
 	} else {
-		maker = statementFromStringMaker
+		maker = internal.StatementFromStringMaker
 	}
 
 	// Make a list of statements from the input
-	var ss statements
+	var ss internal.Statements
 	for scanner.Scan() {
 		s, err := maker(scanner.Text())
 		if err != nil {
 			return exitParseStatements, err
 		}
-		ss.add(s)
+		ss.Add(s)
 	}
 	if err := scanner.Err(); err != nil {
 		return exitReadInput, fmt.Errorf("failed to read input statements")
 	}
 
 	// turn the statements into a single merged interface{} type
-	merged, err := ss.toInterface()
+	merged, err := ss.ToInterface()
 	if err != nil {
 		return exitParseStatements, err
 	}
@@ -433,31 +415,31 @@ func gronValues(r io.Reader, w io.Writer, opts int) (int, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for scanner.Scan() {
-		s := statementFromString(scanner.Text())
+		s := internal.StatementFromString(scanner.Text())
 
 		// strip off the leading 'json' bare key
-		if s[0].typ == typBare && s[0].text == "json" {
+		if s[0].Typ == internal.TypBare && s[0].Text == "json" {
 			s = s[1:]
 		}
 
 		// strip off the leading dots
-		if s[0].typ == typDot || s[0].typ == typLBrace {
+		if s[0].Typ == internal.TypDot || s[0].Typ == internal.TypLBrace {
 			s = s[1:]
 		}
 
 		for _, t := range s {
-			switch t.typ {
-			case typString:
+			switch t.Typ {
+			case internal.TypString:
 				var text string
-				err := json.Unmarshal([]byte(t.text), &text)
+				err := json.Unmarshal([]byte(t.Text), &text)
 				if err != nil {
 					// just swallow errors and try to continue
 					continue
 				}
 				fmt.Println(text)
 
-			case typNumber, typTrue, typFalse, typNull:
-				fmt.Println(t.text)
+			case internal.TypNumber, internal.TypTrue, internal.TypFalse, internal.TypNull:
+				fmt.Println(t.Text)
 
 			default:
 				// Nothing

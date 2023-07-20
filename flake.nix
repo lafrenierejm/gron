@@ -67,10 +67,10 @@
             settings.formatter = {
               prettier = {
                 excludes = [
-                  "testdata/large-line.json"
-                  "testdata/long-stream.json"
-                  "testdata/scalar-stream.json"
-                  "testdata/stream.json"
+                  "internal/gron/testdata/large-line.json"
+                  "internal/gron/testdata/long-stream.json"
+                  "internal/gron/testdata/scalar-stream.json"
+                  "internal/gron/testdata/stream.json"
                 ];
               };
             };
@@ -84,7 +84,11 @@
               treefmt.enable = true;
               typos = {
                 enable = true;
-                excludes = [ "ADVANCED.mkd" "testdata/.*" "ungron_test.go" ];
+                excludes = [
+                  "ADVANCED.mkd"
+                  "internal/gron/testdata/.*"
+                  "internal/gron/ungron_test.go"
+                ];
               };
             };
           };
