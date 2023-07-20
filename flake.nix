@@ -46,7 +46,7 @@
               meta = with pkgs.lib; {
                 description =
                   "Transform JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it";
-                homepage = "https://github.com/tomnomnom/gron";
+                homepage = "https://github.com/lafrenierejm/gron";
                 license = licenses.mit;
                 maintainers = with maintainers; [ lafrenierejm ];
               };
