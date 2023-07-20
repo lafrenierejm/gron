@@ -1,4 +1,4 @@
-module github.com/tomnomnom/gron
+module github.com/lafrenierejm/gron
 
 go 1.20
 
@@ -14,3 +14,5 @@ require (
 	golang.org/x/sys v0.10.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/tomnomnom/gron => ./
