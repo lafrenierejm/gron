@@ -10,9 +10,11 @@
 //   String ::= '"' (UnescapedRune | ("\" (["\/bfnrt] | ('u' Hex))))* '"'
 //   UnescapedRune ::= [^#x0-#x1f"\]
 
-package main
+package gron
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -21,8 +23,109 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/nwidger/jsoncolor"
 	"github.com/pkg/errors"
+	"io"
 )
+
+// Ungron is the reverse of gron. Given assignment statements as input,
+// it returns JSON. The only option is optMonochrome
+func Ungron(r io.Reader, w io.Writer, opts int) (int, error) {
+	scanner := bufio.NewScanner(r)
+	var maker StatementMaker
+
+	// Allow larger internal buffer of the scanner (min: 64KiB ~ max: 1MiB)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+
+	if opts&optJSON > 0 {
+		maker = StatementFromJSONSpec
+	} else {
+		maker = StatementFromStringMaker
+	}
+
+	// Make a list of statements from the input
+	var ss Statements
+	for scanner.Scan() {
+		s, err := maker(scanner.Text())
+		if err != nil {
+			return exitParseStatements, err
+		}
+		ss.Add(s)
+	}
+	if err := scanner.Err(); err != nil {
+		return exitReadInput, fmt.Errorf("failed to read input statements")
+	}
+
+	// turn the statements into a single merged interface{} type
+	merged, err := ss.ToInterface()
+	if err != nil {
+		return exitParseStatements, err
+	}
+
+	// If there's only one top level key and it's "json", make that the top level thing
+	mergedMap, ok := merged.(map[string]interface{})
+	if ok {
+		if len(mergedMap) == 1 {
+			if _, exists := mergedMap["json"]; exists {
+				merged = mergedMap["json"]
+			}
+		}
+	}
+
+	// Marshal the output into JSON to display to the user
+	out := &bytes.Buffer{}
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(merged)
+	if err != nil {
+		return exitJSONEncode, errors.Wrap(err, "failed to convert statements to JSON")
+	}
+	j := out.Bytes()
+
+	// If the output isn't monochrome, add color to the JSON
+	if opts&optMonochrome == 0 {
+		c, err := colorizeJSON(j)
+
+		// If we failed to colorize the JSON for whatever reason,
+		// we'll just fall back to monochrome output, otherwise
+		// replace the monochrome JSON with glorious technicolor
+		if err == nil {
+			j = c
+		}
+	}
+
+	// For whatever reason, the monochrome version of the JSON
+	// has a trailing newline character, but the colorized version
+	// does not. Strip the whitespace so that neither has the newline
+	// character on the end, and then we'll add a newline in the
+	// Fprintf below
+	j = bytes.TrimSpace(j)
+
+	fmt.Fprintf(w, "%s\n", j)
+
+	return exitOK, nil
+}
+
+func colorizeJSON(src []byte) ([]byte, error) {
+	out := &bytes.Buffer{}
+	f := jsoncolor.NewFormatter()
+
+	f.StringColor = strColor
+	f.ObjectColor = braceColor
+	f.ArrayColor = braceColor
+	f.FieldColor = bareColor
+	f.NumberColor = numColor
+	f.TrueColor = boolColor
+	f.FalseColor = boolColor
+	f.NullColor = boolColor
+
+	err := f.Format(out, src)
+	if err != nil {
+		return out.Bytes(), err
+	}
+	return out.Bytes(), nil
+}
 
 // errRecoverable is an error type to represent errors that
 // can be recovered from; e.g. an empty line in the input
@@ -41,7 +144,7 @@ type lexer struct {
 	width      int     // The width of the current rune in bytes
 	cur        rune    // The rune at the current position
 	prev       rune    // The rune at the previous position
-	tokens     []token // The tokens that have been emitted
+	tokens     []Token // The tokens that have been emitted
 	tokenStart int     // The starting position of the current token
 }
 
@@ -51,12 +154,12 @@ func newLexer(text string) *lexer {
 		text:       text,
 		pos:        0,
 		tokenStart: 0,
-		tokens:     make([]token, 0),
+		tokens:     make([]Token, 0),
 	}
 }
 
 // lex runs the lexer and returns the lexed statement
-func (l *lexer) lex() statement {
+func (l *lexer) lex() Statement {
 
 	for lexfn := lexStatement; lexfn != nil; {
 		lexfn = lexfn(l)
@@ -98,10 +201,10 @@ func (l *lexer) ignore() {
 
 // emit adds the current token to the token slice and
 // moves the tokenStart pointer to the current position
-func (l *lexer) emit(typ tokenTyp) {
-	t := token{
-		text: l.text[l.tokenStart:l.pos],
-		typ:  typ,
+func (l *lexer) emit(typ TokenTyp) {
+	t := Token{
+		Text: l.text[l.tokenStart:l.pos],
+		Typ:  typ,
 	}
 	l.tokenStart = l.pos
 
@@ -207,7 +310,7 @@ func lexStatement(l *lexer) lexFn {
 	case r == utf8.RuneError:
 		return nil
 	default:
-		l.emit(typError)
+		l.emit(TypError)
 		return nil
 	}
 
@@ -217,15 +320,15 @@ func lexStatement(l *lexer) lexFn {
 // E.g: the 'foo' in 'foo.bar' or 'foo[0]' is a bare identifier
 func lexBareWord(l *lexer) lexFn {
 	if l.accept(".") {
-		l.emit(typDot)
+		l.emit(TypDot)
 	}
 
 	if !l.acceptFunc(validFirstRune) {
-		l.emit(typError)
+		l.emit(TypError)
 		return nil
 	}
 	l.acceptRunFunc(validSecondaryRune)
-	l.emit(typBare)
+	l.emit(TypBare)
 
 	return lexStatement
 }
@@ -233,7 +336,7 @@ func lexBareWord(l *lexer) lexFn {
 // lexBraces lexes keys contained within square braces
 func lexBraces(l *lexer) lexFn {
 	l.accept("[")
-	l.emit(typLBrace)
+	l.emit(TypLBrace)
 
 	switch {
 	case unicode.IsNumber(l.peek()):
@@ -241,7 +344,7 @@ func lexBraces(l *lexer) lexFn {
 	case l.peek() == '"':
 		return lexQuotedKey
 	default:
-		l.emit(typError)
+		l.emit(TypError)
 		return nil
 	}
 }
@@ -252,12 +355,12 @@ func lexNumericKey(l *lexer) lexFn {
 	l.ignore()
 
 	l.acceptRunFunc(unicode.IsNumber)
-	l.emit(typNumericKey)
+	l.emit(TypNumericKey)
 
 	if l.accept("]") {
-		l.emit(typRBrace)
+		l.emit(TypRBrace)
 	} else {
-		l.emit(typError)
+		l.emit(TypError)
 		return nil
 	}
 	l.ignore()
@@ -273,12 +376,12 @@ func lexQuotedKey(l *lexer) lexFn {
 
 	l.acceptUntilUnescaped(`"`)
 	l.accept(`"`)
-	l.emit(typQuotedKey)
+	l.emit(TypQuotedKey)
 
 	if l.accept("]") {
-		l.emit(typRBrace)
+		l.emit(TypRBrace)
 	} else {
-		l.emit(typError)
+		l.emit(TypError)
 		return nil
 	}
 	l.ignore()
@@ -291,7 +394,7 @@ func lexValue(l *lexer) lexFn {
 	l.ignore()
 
 	if l.accept("=") {
-		l.emit(typEquals)
+		l.emit(TypEquals)
 	} else {
 		return nil
 	}
@@ -303,39 +406,39 @@ func lexValue(l *lexer) lexFn {
 	case l.accept(`"`):
 		l.acceptUntilUnescaped(`"`)
 		l.accept(`"`)
-		l.emit(typString)
+		l.emit(TypString)
 
 	case l.accept("t"):
 		l.acceptRun("rue")
-		l.emit(typTrue)
+		l.emit(TypTrue)
 
 	case l.accept("f"):
 		l.acceptRun("alse")
-		l.emit(typFalse)
+		l.emit(TypFalse)
 
 	case l.accept("n"):
 		l.acceptRun("ul")
-		l.emit(typNull)
+		l.emit(TypNull)
 
 	case l.accept("["):
 		l.accept("]")
-		l.emit(typEmptyArray)
+		l.emit(TypEmptyArray)
 
 	case l.accept("{"):
 		l.accept("}")
-		l.emit(typEmptyObject)
+		l.emit(TypEmptyObject)
 
 	default:
 		// Assume number
 		l.acceptUntil(";")
-		l.emit(typNumber)
+		l.emit(TypNumber)
 	}
 
 	l.acceptRun(" ")
 	l.ignore()
 
 	if l.accept(";") {
-		l.emit(typSemi)
+		l.emit(TypSemi)
 	}
 
 	// The value should always be the last thing
@@ -349,21 +452,21 @@ func lexIgnore(l *lexer) lexFn {
 	l.acceptRunFunc(func(r rune) bool {
 		return r != utf8.RuneError
 	})
-	l.emit(typIgnored)
+	l.emit(TypIgnored)
 	return nil
 }
 
 // ungronTokens turns a slice of tokens into an actual datastructure
-func ungronTokens(ts []token) (interface{}, error) {
+func ungronTokens(ts []Token) (interface{}, error) {
 	if len(ts) == 0 {
 		return nil, errRecoverable{"empty input"}
 	}
 
-	if ts[0].typ == typIgnored {
+	if ts[0].Typ == TypIgnored {
 		return nil, errRecoverable{"ignored token"}
 	}
 
-	if ts[len(ts)-1].typ == typError {
+	if ts[len(ts)-1].Typ == TypError {
 		return nil, errors.New("invalid statement")
 	}
 
@@ -386,42 +489,42 @@ func ungronTokens(ts []token) (interface{}, error) {
 
 	case t.isValue():
 		var val interface{}
-		d := json.NewDecoder(strings.NewReader(t.text))
+		d := json.NewDecoder(strings.NewReader(t.Text))
 		d.UseNumber()
 		err := d.Decode(&val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid value `%s`", t.text)
+			return nil, fmt.Errorf("invalid value `%s`", t.Text)
 		}
 		return val, nil
 
-	case t.typ == typBare:
+	case t.Typ == TypBare:
 		val, err := ungronTokens(ts[1:])
 		if err != nil {
 			return nil, err
 		}
 		out := make(map[string]interface{})
-		out[t.text] = val
+		out[t.Text] = val
 		return out, nil
 
-	case t.typ == typQuotedKey:
+	case t.Typ == TypQuotedKey:
 		val, err := ungronTokens(ts[1:])
 		if err != nil {
 			return nil, err
 		}
 		key := ""
-		err = json.Unmarshal([]byte(t.text), &key)
+		err = json.Unmarshal([]byte(t.Text), &key)
 		if err != nil {
-			return nil, fmt.Errorf("invalid quoted key `%s`", t.text)
+			return nil, fmt.Errorf("invalid quoted key `%s`", t.Text)
 		}
 
 		out := make(map[string]interface{})
 		out[key] = val
 		return out, nil
 
-	case t.typ == typNumericKey:
-		key, err := strconv.Atoi(t.text)
+	case t.Typ == TypNumericKey:
+		key, err := strconv.Atoi(t.Text)
 		if err != nil {
-			return nil, fmt.Errorf("invalid integer key `%s`", t.text)
+			return nil, fmt.Errorf("invalid integer key `%s`", t.Text)
 		}
 
 		val, err := ungronTokens(ts[1:])
@@ -435,7 +538,7 @@ func ungronTokens(ts []token) (interface{}, error) {
 		return out, nil
 
 	default:
-		return nil, fmt.Errorf("unexpected token `%s`", t.text)
+		return nil, fmt.Errorf("unexpected token `%s`", t.Text)
 	}
 }
 

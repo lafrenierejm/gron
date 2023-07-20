@@ -1,4 +1,4 @@
-package main
+package gron
 
 import (
 	"bytes"
@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-func statementsFromStringSlice(strs []string) statements {
-	ss := make(statements, len(strs))
+func statementsFromStringSlice(strs []string) Statements {
+	ss := make(Statements, len(strs))
 	for i, str := range strs {
-		ss[i] = statementFromString(str)
+		ss[i] = StatementFromString(str)
 	}
 	return ss
 }
@@ -33,7 +33,7 @@ func TestStatementsSimple(t *testing.T) {
 		"": 2
 	}`)
 
-	ss, err := statementsFromJSON(makeDecoder(bytes.NewReader(j), 0), statement{{"json", typBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), 0), Statement{{"json", TypBare}})
 
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
@@ -83,7 +83,7 @@ x: |
   y: "z"
 id: 66912849`)
 
-	ss, err := statementsFromJSON(makeDecoder(bytes.NewReader(j), optYAML), statement{{"yaml", typBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), optYAML), Statement{{"yaml", TypBare}})
 
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
@@ -179,8 +179,8 @@ func BenchmarkFill(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		ss := make(statements, 0)
-		ss.fill(statement{{"json", typBare}}, top)
+		ss := make(Statements, 0)
+		ss.fill(Statement{{"json", TypBare}}, top)
 	}
 }
 
@@ -206,7 +206,7 @@ func TestUngronStatementsSimple(t *testing.T) {
 		},
 	}
 
-	have, err := in.toInterface()
+	have, err := in.ToInterface()
 
 	if err != nil {
 		t.Fatalf("want nil error but have: %s", err)
@@ -222,14 +222,14 @@ func TestUngronStatementsSimple(t *testing.T) {
 }
 
 func TestUngronStatementsInvalid(t *testing.T) {
-	cases := []statements{
+	cases := []Statements{
 		statementsFromStringSlice([]string{``}),
 		statementsFromStringSlice([]string{`this isn't a statement at all`}),
 		statementsFromStringSlice([]string{`json[0] = 1;`, `json.bar = 1;`}),
 	}
 
 	for _, c := range cases {
-		_, err := c.toInterface()
+		_, err := c.ToInterface()
 		if err == nil {
 			t.Errorf("want non-nil error; have nil")
 		}
@@ -237,13 +237,13 @@ func TestUngronStatementsInvalid(t *testing.T) {
 }
 
 func TestStatement(t *testing.T) {
-	s := statement{
-		token{"json", typBare},
-		token{".", typDot},
-		token{"foo", typBare},
-		token{"=", typEquals},
-		token{"2", typNumber},
-		token{";", typSemi},
+	s := Statement{
+		Token{"json", TypBare},
+		Token{".", TypDot},
+		Token{"foo", TypBare},
+		Token{"=", TypEquals},
+		Token{"2", TypNumber},
+		Token{";", TypSemi},
 	}
 
 	have := s.String()
