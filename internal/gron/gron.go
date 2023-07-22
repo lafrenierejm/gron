@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-
-	"github.com/fatih/color"
 )
 
 // Exit codes
@@ -21,48 +19,24 @@ const (
 	exitJSONEncode
 )
 
-// Option bitfields
-const (
-	optMonochrome = 1 << iota
-	optNoSort
-	optJSON
-	optYAML
-)
-
-// Output colors
-var (
-	strColor   = color.New(color.FgYellow)
-	braceColor = color.New(color.FgMagenta)
-	bareColor  = color.New(color.FgBlue, color.Bold)
-	numColor   = color.New(color.FgRed)
-	boolColor  = color.New(color.FgCyan)
-)
-
 // Gron is the default action. Given JSON as the input it returns a list
 // of assignment statements. Possible options are optNoSort and optMonochrome
-func Gron(r io.Reader, w io.Writer, opts int) (int, error) {
+func Gron(r io.Reader, w io.Writer, conv StatementConv, inYaml bool, sortOutput bool, outJson bool) (int, error) {
 	var err error
 
-	var conv StatementConv
-	if opts&optMonochrome > 0 {
-		conv = StatementToString
-	} else {
-		conv = StatementToColorString
-	}
-
-	ss, err := StatementsFromJSON(MakeDecoder(r, opts&optYAML), Statement{{"json", TypBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(r, inYaml), Statement{{"json", TypBare}})
 	if err != nil {
 		goto out
 	}
 
 	// Go's maps do not have well-defined ordering, but we want a consistent
 	// output for a given input, so we must sort the statements
-	if opts&optNoSort == 0 {
+	if sortOutput {
 		sort.Sort(ss)
 	}
 
 	for _, s := range ss {
-		if opts&optJSON > 0 {
+		if outJson {
 			s, err = s.Jsonify()
 			if err != nil {
 				goto out
@@ -81,19 +55,19 @@ out:
 // GronStream is like the gron action, but it treats the input as one
 // JSON object per line. There's a bit of code duplication from the
 // gron action, but it'd be fairly messy to combine the two actions
-func GronStream(r io.Reader, w io.Writer, opts int) (int, error) {
+func GronStream(
+	r io.Reader,
+	w io.Writer,
+	conv StatementConv,
+	inYaml bool,
+	outSort bool,
+	outJson bool,
+) (int, error) {
 	var err error
 	errstr := "failed to form statements"
 	var i int
 	var sc *bufio.Scanner
 	var buf []byte
-
-	var conv func(s Statement) string
-	if opts&optMonochrome > 0 {
-		conv = StatementToString
-	} else {
-		conv = StatementToColorString
-	}
 
 	// Helper function to make the prefix statements for each line
 	makePrefix := func(index int) Statement {
@@ -114,7 +88,7 @@ func GronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 		{";", TypSemi},
 	}
 
-	if opts&optJSON > 0 {
+	if outJson {
 		top, err = top.Jsonify()
 		if err != nil {
 			goto out
@@ -133,7 +107,7 @@ func GronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 		line := bytes.NewBuffer(sc.Bytes())
 
 		var ss Statements
-		ss, err = StatementsFromJSON(MakeDecoder(line, opts&optYAML), makePrefix(i))
+		ss, err = StatementsFromJSON(MakeDecoder(line, inYaml), makePrefix(i))
 		i++
 		if err != nil {
 			goto out
@@ -141,12 +115,12 @@ func GronStream(r io.Reader, w io.Writer, opts int) (int, error) {
 
 		// Go's maps do not have well-defined ordering, but we want a consistent
 		// output for a given input, so we must sort the statements
-		if opts&optNoSort == 0 {
+		if outSort {
 			sort.Sort(ss)
 		}
 
 		for _, s := range ss {
-			if opts&optJSON > 0 {
+			if outJson {
 				s, err = s.Jsonify()
 				if err != nil {
 					goto out
@@ -165,5 +139,4 @@ out:
 		return exitFormStatements, fmt.Errorf(errstr+": %s", err)
 	}
 	return exitOK, nil
-
 }

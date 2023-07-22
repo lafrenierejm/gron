@@ -50,25 +50,6 @@ const (
 	TypError
 )
 
-// a sprintFn adds color to its input
-type sprintFn func(...interface{}) string
-
-// mapping of token types to the appropriate color sprintFn
-var sprintFns = map[TokenTyp]sprintFn{
-	TypBare:        bareColor.SprintFunc(),
-	TypNumericKey:  numColor.SprintFunc(),
-	TypQuotedKey:   strColor.SprintFunc(),
-	TypLBrace:      braceColor.SprintFunc(),
-	TypRBrace:      braceColor.SprintFunc(),
-	TypString:      strColor.SprintFunc(),
-	TypNumber:      numColor.SprintFunc(),
-	TypTrue:        boolColor.SprintFunc(),
-	TypFalse:       boolColor.SprintFunc(),
-	TypNull:        boolColor.SprintFunc(),
-	TypEmptyArray:  braceColor.SprintFunc(),
-	TypEmptyObject: braceColor.SprintFunc(),
-}
-
 // isValue returns true if the token is a valid value type
 func (t Token) isValue() bool {
 	switch t.Typ {
@@ -108,7 +89,6 @@ func (t Token) formatColor() string {
 		return fn(text)
 	}
 	return text
-
 }
 
 // valueTokenFromInterface takes any valid value and
@@ -143,7 +123,6 @@ func valueTokenFromInterface(v interface{}) Token {
 // quoteString takes a string and returns a quoted and
 // escaped string valid for use in gron output
 func quoteString(s string) string {
-
 	out := &bytes.Buffer{}
 	// bytes.Buffer never returns errors on these methods.
 	// errors are explicitly ignored to keep the linter
@@ -187,5 +166,4 @@ func quoteString(s string) string {
 
 	_ = out.WriteByte('"')
 	return out.String()
-
 }

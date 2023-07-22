@@ -2,8 +2,9 @@ package gron
 
 import (
 	"encoding/json"
-	"gopkg.in/yaml.v3"
 	"io"
+
+	"gopkg.in/yaml.v3"
 )
 
 // an ActionFn represents a main action of the program, it accepts
@@ -15,8 +16,8 @@ type Decoder interface {
 	Decode(interface{}) error
 }
 
-func MakeDecoder(r io.Reader, optYAML int) Decoder {
-	if optYAML > 0 {
+func MakeDecoder(r io.Reader, asYaml bool) Decoder {
+	if asYaml {
 		return yaml.NewDecoder(r)
 	} else {
 		d := json.NewDecoder(r)

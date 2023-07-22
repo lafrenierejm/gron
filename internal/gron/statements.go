@@ -272,7 +272,6 @@ out:
 
 // ungron turns statements into a proper datastructure
 func (ss Statements) ToInterface() (interface{}, error) {
-
 	// Get all the individually parsed statements
 	var parsed []interface{}
 	for _, s := range ss {
@@ -303,13 +302,11 @@ func (ss Statements) ToInterface() (interface{}, error) {
 		merged = m
 	}
 	return merged, nil
-
 }
 
 // Less compares two statements for sort.Sort
 // Implements a natural sort to keep array indexes in order
 func (ss Statements) Less(a, b int) bool {
-
 	// ss[a] and ss[b] are both slices of tokens. The first
 	// thing we need to do is find the first token (if any)
 	// that differs, then we can use that token to decide
@@ -368,7 +365,6 @@ func (ss Statements) Less(a, b int) bool {
 	na, _ := json.Number(ta.Text).Float64()
 	nb, _ := json.Number(tb.Text).Float64()
 	return na < nb
-
 }
 
 // Contains searches the statements for a given statement
@@ -398,7 +394,6 @@ func StatementsFromJSON(r Decoder, prefix Statement) (Statements, error) {
 // fill takes a prefix statement and some value and recursively fills
 // the statement list using that value
 func (ss *Statements) fill(prefix Statement, v interface{}) {
-
 	// Add a statement for the current prefix and value
 	ss.AddWithValue(prefix, valueTokenFromInterface(v))
 
@@ -431,5 +426,4 @@ func (ss *Statements) fill(prefix Statement, v interface{}) {
 			ss.fill(prefix.withNumericKey(k), sub)
 		}
 	}
-
 }

@@ -206,7 +206,6 @@ func TestTokensSimple(t *testing.T) {
 	l := newLexer(in)
 	tokens := l.lex()
 	have, err := ungronTokens(tokens)
-
 	if err != nil {
 		t.Fatalf("failed to ungron statement: %s", err)
 	}
@@ -288,5 +287,4 @@ func TestMerge(t *testing.T) {
 	if !eq {
 		t.Errorf("Have and want datastructures are unequal")
 	}
-
 }

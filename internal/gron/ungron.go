@@ -17,27 +17,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/nwidger/jsoncolor"
 	"github.com/pkg/errors"
-	"io"
 )
 
 // Ungron is the reverse of gron. Given assignment statements as input,
 // it returns JSON. The only option is optMonochrome
-func Ungron(r io.Reader, w io.Writer, opts int) (int, error) {
+func Ungron(r io.Reader, w io.Writer, outJson bool, colorize bool) (int, error) {
 	scanner := bufio.NewScanner(r)
 	var maker StatementMaker
 
 	// Allow larger internal buffer of the scanner (min: 64KiB ~ max: 1MiB)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 
-	if opts&optJSON > 0 {
+	if outJson {
 		maker = StatementFromJSONSpec
 	} else {
 		maker = StatementFromStringMaker
@@ -84,7 +83,7 @@ func Ungron(r io.Reader, w io.Writer, opts int) (int, error) {
 	j := out.Bytes()
 
 	// If the output isn't monochrome, add color to the JSON
-	if opts&optMonochrome == 0 {
+	if colorize {
 		c, err := colorizeJSON(j)
 
 		// If we failed to colorize the JSON for whatever reason,
@@ -105,26 +104,6 @@ func Ungron(r io.Reader, w io.Writer, opts int) (int, error) {
 	fmt.Fprintf(w, "%s\n", j)
 
 	return exitOK, nil
-}
-
-func colorizeJSON(src []byte) ([]byte, error) {
-	out := &bytes.Buffer{}
-	f := jsoncolor.NewFormatter()
-
-	f.StringColor = strColor
-	f.ObjectColor = braceColor
-	f.ArrayColor = braceColor
-	f.FieldColor = bareColor
-	f.NumberColor = numColor
-	f.TrueColor = boolColor
-	f.FalseColor = boolColor
-	f.NullColor = boolColor
-
-	err := f.Format(out, src)
-	if err != nil {
-		return out.Bytes(), err
-	}
-	return out.Bytes(), nil
 }
 
 // errRecoverable is an error type to represent errors that
@@ -160,7 +139,6 @@ func newLexer(text string) *lexer {
 
 // lex runs the lexer and returns the lexed statement
 func (l *lexer) lex() Statement {
-
 	for lexfn := lexStatement; lexfn != nil; {
 		lexfn = lexfn(l)
 	}
@@ -266,7 +244,6 @@ func (l *lexer) acceptUntil(delims string) {
 // rune contained in the provided string, unless that rune was
 // escaped with a backslash
 func (l *lexer) acceptUntilUnescaped(delims string) {
-
 	// Read until we hit an unescaped rune or the end of the input
 	inEscape := false
 	for {
@@ -313,7 +290,6 @@ func lexStatement(l *lexer) lexFn {
 		l.emit(TypError)
 		return nil
 	}
-
 }
 
 // lexBareWord lexes for bare identifiers.

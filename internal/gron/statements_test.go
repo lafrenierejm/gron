@@ -17,7 +17,6 @@ func statementsFromStringSlice(strs []string) Statements {
 }
 
 func TestStatementsSimple(t *testing.T) {
-
 	j := []byte(`{
 		"dotted": "A dotted value",
 		"a quoted": "value",
@@ -33,8 +32,7 @@ func TestStatementsSimple(t *testing.T) {
 		"": 2
 	}`)
 
-	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), 0), Statement{{"json", TypBare}})
-
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), false), Statement{{"json", TypBare}})
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
 	}
@@ -62,11 +60,9 @@ func TestStatementsSimple(t *testing.T) {
 			t.Errorf("Statement group should contain `%s` but doesn't", want)
 		}
 	}
-
 }
 
 func TestStatementsSimpleYaml(t *testing.T) {
-
 	j := []byte(`'': 2
 a quoted: value
 anarr:
@@ -83,8 +79,7 @@ x: |
   y: "z"
 id: 66912849`)
 
-	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), optYAML), Statement{{"yaml", TypBare}})
-
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), true), Statement{{"yaml", TypBare}})
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
 	}
@@ -113,8 +108,8 @@ id: 66912849`)
 			t.Errorf("Statement group should contain `%s` but doesn't", want)
 		}
 	}
-
 }
+
 func TestStatementsSorting(t *testing.T) {
 	want := statementsFromStringSlice([]string{
 		`json.a = true;`,
@@ -207,7 +202,6 @@ func TestUngronStatementsSimple(t *testing.T) {
 	}
 
 	have, err := in.ToInterface()
-
 	if err != nil {
 		t.Fatalf("want nil error but have: %s", err)
 	}

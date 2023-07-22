@@ -29,7 +29,6 @@ var cases = []struct {
 }
 
 func TestValueTokenFromInterface(t *testing.T) {
-
 	for _, c := range cases {
 		have := valueTokenFromInterface(c.in)
 
@@ -43,7 +42,6 @@ func TestValueTokenFromInterface(t *testing.T) {
 }
 
 func BenchmarkValueTokenFromInterface(b *testing.B) {
-
 	for i := 0; i < b.N; i++ {
 		for _, c := range cases {
 			_ = valueTokenFromInterface(c.in)
