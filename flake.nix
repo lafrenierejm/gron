@@ -31,28 +31,31 @@
             overlays = [ inputs.gomod2nix.overlays.default (final: prev: { }) ];
             config = { };
           };
+          gron = pkgs.buildGoApplication {
+            pname = "gron";
+            version = self'.shortRev or "dirty";
+            # In 'nix develop', we don't need a copy of the source tree
+            # in the Nix store.
+            src = ./.;
+            modules = ./gomod2nix.toml;
+            meta = with pkgs.lib; {
+              description =
+                "Transform JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it";
+              homepage = "https://github.com/lafrenierejm/gron";
+              license = licenses.mit;
+              maintainers = with maintainers; [ lafrenierejm ];
+            };
+          };
         in {
           # Per-system attributes can be defined here. The self' and inputs'
           # module parameters provide easy access to attributes of the same
           # system.
           packages = rec {
-            gron = pkgs.buildGoApplication {
-              pname = "gron";
-              version = self'.shortRev or "dirty";
-              # In 'nix develop', we don't need a copy of the source tree
-              # in the Nix store.
-              src = ./.;
-              modules = ./gomod2nix.toml;
-              meta = with pkgs.lib; {
-                description =
-                  "Transform JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it";
-                homepage = "https://github.com/lafrenierejm/gron";
-                license = licenses.mit;
-                maintainers = with maintainers; [ lafrenierejm ];
-              };
-            };
+            inherit gron;
             default = gron;
           };
+
+          apps.default = gron;
 
           # Auto formatters. This also adds a flake check to ensure that the
           # source tree was auto formatted.
@@ -61,7 +64,7 @@
             package = pkgs.treefmt;
             flakeCheck = false; # use pre-commit's check instead
             programs = {
-              gofmt.enable = true;
+              gofumpt.enable = true;
               prettier.enable = true;
             };
             settings.formatter = {
@@ -97,9 +100,11 @@
             # Inherit all of the pre-commit hooks.
             inputsFrom = [ config.pre-commit.devShell ];
             buildInputs = with pkgs; [
+              cobra-cli
               go
               go-tools
               godef
+              gofumpt
               gomod2nix
               gopls
               gotools

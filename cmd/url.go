@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bufio"
@@ -28,11 +28,10 @@ func getURL(url string, insecure bool) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("gron/%s", gronVersion))
+	req.Header.Set("User-Agent", fmt.Sprintf("gron/%s", version))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return nil, err
 	}

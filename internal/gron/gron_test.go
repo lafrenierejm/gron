@@ -32,7 +32,7 @@ func TestGron(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := Gron(in, out, optMonochrome)
+		code, err := Gron(in, out, StatementToString, false, true, false)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -47,7 +47,6 @@ func TestGron(t *testing.T) {
 			t.Errorf("gronned %s does not match %s", c.inFile, c.outFile)
 		}
 	}
-
 }
 
 func TestGronStream(t *testing.T) {
@@ -71,7 +70,7 @@ func TestGronStream(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := GronStream(in, out, optMonochrome)
+		code, err := GronStream(in, out, StatementToString, false, true, false)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -86,7 +85,6 @@ func TestGronStream(t *testing.T) {
 			t.Errorf("gronned %s does not match %s", c.inFile, c.outFile)
 		}
 	}
-
 }
 
 func TestLargeGronStream(t *testing.T) {
@@ -109,7 +107,7 @@ func TestLargeGronStream(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := GronStream(in, out, optMonochrome)
+		code, err := GronStream(in, out, StatementToString, false, true, false)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -124,7 +122,6 @@ func TestLargeGronStream(t *testing.T) {
 			t.Errorf("gronned %s does not match %s", c.inFile, c.outFile)
 		}
 	}
-
 }
 
 func TestUngron(t *testing.T) {
@@ -159,7 +156,7 @@ func TestUngron(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := Ungron(in, out, optMonochrome)
+		code, err := Ungron(in, out, false, false)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -206,7 +203,7 @@ func TestGronJ(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := Gron(in, out, optMonochrome|optJSON)
+		code, err := Gron(in, out, StatementToString, false, true, true)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -221,7 +218,6 @@ func TestGronJ(t *testing.T) {
 			t.Errorf("gronned %s does not match %s", c.inFile, c.outFile)
 		}
 	}
-
 }
 
 func TestGronStreamJ(t *testing.T) {
@@ -245,7 +241,7 @@ func TestGronStreamJ(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := GronStream(in, out, optMonochrome|optJSON)
+		code, err := GronStream(in, out, StatementToString, false, true, true)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -260,7 +256,6 @@ func TestGronStreamJ(t *testing.T) {
 			t.Errorf("gronned %s does not match %s", c.inFile, c.outFile)
 		}
 	}
-
 }
 
 func TestUngronJ(t *testing.T) {
@@ -292,7 +287,7 @@ func TestUngronJ(t *testing.T) {
 		}
 
 		out := &bytes.Buffer{}
-		code, err := Ungron(in, out, optMonochrome|optJSON)
+		code, err := Ungron(in, out, true, false)
 
 		if code != exitOK {
 			t.Errorf("want exitOK; have %d", code)
@@ -329,7 +324,7 @@ func BenchmarkBigJSON(b *testing.B) {
 			b.Fatalf("failed to rewind input: %s", err)
 		}
 
-		_, err := Gron(in, out, optMonochrome|optNoSort)
+		_, err := Gron(in, out, StatementToString, false, true, false)
 		if err != nil {
 			b.Fatalf("failed to gron: %s", err)
 		}
