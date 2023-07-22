@@ -16,7 +16,7 @@ jobs:
         uses: cachix/install-nix-action@v21
 
       - name: Ensure the build succeeds
-        run: nix build
+        run: nix build --print-build-logs
 
       - name: Run `nix flake check` to run formatters, linters, and tests
         run: nix flake check --print-build-logs
