@@ -17,7 +17,7 @@ import (
 	json "github.com/virtuald/go-ordered-json"
 )
 
-var version = "0.0.1"
+var version = "0.8.1"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
