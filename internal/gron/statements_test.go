@@ -2,10 +2,11 @@ package gron
 
 import (
 	"bytes"
-	"encoding/json"
 	"reflect"
 	"sort"
 	"testing"
+
+	json "github.com/virtuald/go-ordered-json"
 )
 
 func statementsFromStringSlice(strs []string) Statements {
@@ -32,7 +33,7 @@ func TestStatementsSimple(t *testing.T) {
 		"": 2
 	}`)
 
-	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), false), Statement{{"json", TypBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), false, false), Statement{{"json", TypBare}})
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
 	}
@@ -79,7 +80,7 @@ x: |
   y: "z"
 id: 66912849`)
 
-	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), true), Statement{{"yaml", TypBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(bytes.NewReader(j), true, false), Statement{{"yaml", TypBare}})
 	if err != nil {
 		t.Errorf("Want nil error from makeStatementsFromJSON() but got %s", err)
 	}
@@ -182,21 +183,31 @@ func BenchmarkFill(b *testing.B) {
 func TestUngronStatementsSimple(t *testing.T) {
 	in := statementsFromStringSlice([]string{
 		`json.contact = {};`,
+		`json.contact.twitter = "@TomNomNom";`,
 		`json.contact["e-mail"][0] = "mail@tomnomnom.com";`,
 		`json.contact["e-mail"][1] = "test@tomnomnom.com";`,
 		`json.contact["e-mail"][3] = "foo@tomnomnom.com";`,
-		`json.contact.twitter = "@TomNomNom";`,
 	})
 
-	want := map[string]interface{}{
-		"json": map[string]interface{}{
-			"contact": map[string]interface{}{
-				"e-mail": []interface{}{
-					0: "mail@tomnomnom.com",
-					1: "test@tomnomnom.com",
-					3: "foo@tomnomnom.com",
+	want := json.OrderedObject{
+		{
+			Key: "json", Value: json.OrderedObject{
+				{
+					Key: "contact", Value: json.OrderedObject{
+						{
+							Key:   "twitter",
+							Value: "@TomNomNom",
+						},
+						{
+							Key: "e-mail", Value: []interface{}{
+								"mail@tomnomnom.com",
+								"test@tomnomnom.com",
+								nil,
+								"foo@tomnomnom.com",
+							},
+						},
+					},
 				},
-				"twitter": "@TomNomNom",
 			},
 		},
 	}

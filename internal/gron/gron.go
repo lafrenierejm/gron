@@ -24,7 +24,7 @@ const (
 func Gron(r io.Reader, w io.Writer, conv StatementConv, inYaml bool, sortOutput bool, outJson bool) (int, error) {
 	var err error
 
-	ss, err := StatementsFromJSON(MakeDecoder(r, inYaml), Statement{{"json", TypBare}})
+	ss, err := StatementsFromJSON(MakeDecoder(r, inYaml, sortOutput), Statement{{"json", TypBare}})
 	if err != nil {
 		goto out
 	}
@@ -107,7 +107,7 @@ func GronStream(
 		line := bytes.NewBuffer(sc.Bytes())
 
 		var ss Statements
-		ss, err = StatementsFromJSON(MakeDecoder(line, inYaml), makePrefix(i))
+		ss, err = StatementsFromJSON(MakeDecoder(line, inYaml, outSort), makePrefix(i))
 		i++
 		if err != nil {
 			goto out

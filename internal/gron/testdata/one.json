@@ -4,10 +4,10 @@
   "three-b": "3",
   "four": [1, 2, 3, 4],
   "five": {
-    "alpha": ["fo", "fum"],
     "beta": {
       "hey": "How's tricks?"
-    }
+    },
+    "alpha": ["fo", "fum"]
   },
   "abool": true,
   "abool2": false,

@@ -1,11 +1,12 @@
 package gron
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+
+	json "github.com/virtuald/go-ordered-json"
 
 	"github.com/pkg/errors"
 )
@@ -399,6 +400,16 @@ func (ss *Statements) fill(prefix Statement, v interface{}) {
 
 	// Recurse into objects and arrays
 	switch vv := v.(type) {
+
+	case json.OrderedObject:
+		// It's an object
+		for _, member := range vv {
+			if validIdentifier(member.Key) {
+				ss.fill(prefix.withBare(member.Key), member.Value)
+			} else {
+				ss.fill(prefix.withQuotedKey(member.Key), member.Value)
+			}
+		}
 
 	case map[interface{}]interface{}:
 		// It's an object

@@ -99,15 +99,15 @@
           devShells.default = pkgs.mkShell {
             # Inherit all of the pre-commit hooks.
             inputsFrom = [ config.pre-commit.devShell ];
-            buildInputs = with pkgs; [
+            packages = with pkgs; [
               cobra-cli
-              go
               go-tools
               godef
               gofumpt
               gomod2nix
               gopls
               gotools
+              (mkGoEnv { pwd = ./.; })
               nixfmt
               nodePackages.prettier
               typos
