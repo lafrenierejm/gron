@@ -1,15 +1,16 @@
 package gron
 
 import (
-	"encoding/json"
 	"testing"
+
+	json "github.com/virtuald/go-ordered-json"
 )
 
 var cases = []struct {
 	in   interface{}
 	want Token
 }{
-	{make(map[string]interface{}), Token{"{}", TypEmptyObject}},
+	{json.OrderedObject{}, Token{"{}", TypEmptyObject}},
 	{make([]interface{}, 0), Token{"[]", TypEmptyArray}},
 	{json.Number("1.2"), Token{"1.2", TypNumber}},
 	{"foo", Token{`"foo"`, TypString}},

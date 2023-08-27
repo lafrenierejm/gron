@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +14,7 @@ import (
 	internal "github.com/lafrenierejm/gron/internal/gron"
 	"github.com/mattn/go-colorable"
 	"github.com/spf13/cobra"
+	json "github.com/virtuald/go-ordered-json"
 )
 
 var version = "0.0.1"
@@ -168,7 +168,7 @@ func init() {
 	rootCmd.Flags().BoolP("insecure", "k", false, "Disable certificate validation when reading from a URL")
 	rootCmd.Flags().BoolP("json", "j", false, "Represent gron data as JSON stream")
 	rootCmd.Flags().BoolP("monochrome", "m", false, "Do not colorize output")
-	rootCmd.Flags().BoolP("sort", "", true, "Sort output")
+	rootCmd.Flags().BoolP("sort", "", false, "Sort output")
 	rootCmd.Flags().BoolP("stream", "s", false, "Treat each line of input as a separate JSON object")
 	rootCmd.Flags().BoolP("ungron", "u", false, "Reverse the operation (turn assignments back into JSON)")
 	rootCmd.Flags().BoolP("values", "v", false, "Print just the values of provided assignments")

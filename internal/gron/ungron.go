@@ -15,7 +15,6 @@ package gron
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	json "github.com/virtuald/go-ordered-json"
 
 	"github.com/pkg/errors"
 )
@@ -62,11 +63,21 @@ func Ungron(r io.Reader, w io.Writer, outJson bool, colorize bool) (int, error) 
 	}
 
 	// If there's only one top level key and it's "json", make that the top level thing
-	mergedMap, ok := merged.(map[string]interface{})
-	if ok {
-		if len(mergedMap) == 1 {
-			if _, exists := mergedMap["json"]; exists {
-				merged = mergedMap["json"]
+	switch merged.(type) {
+
+	case json.OrderedObject:
+		if mergedOrderObject, ok := merged.(json.OrderedObject); ok {
+			if len(mergedOrderObject) == 1 && mergedOrderObject[0].Key == "json" {
+				merged = mergedOrderObject[0].Value
+			}
+		}
+
+	case map[string]interface{}:
+		if mergedMap, ok := merged.(map[string]interface{}); ok {
+			if len(mergedMap) == 1 {
+				if _, exists := mergedMap["json"]; exists {
+					merged = mergedMap["json"]
+				}
 			}
 		}
 	}
@@ -466,6 +477,7 @@ func ungronTokens(ts []Token) (interface{}, error) {
 	case t.isValue():
 		var val interface{}
 		d := json.NewDecoder(strings.NewReader(t.Text))
+		d.UseOrderedObject()
 		d.UseNumber()
 		err := d.Decode(&val)
 		if err != nil {
@@ -478,8 +490,7 @@ func ungronTokens(ts []Token) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		out := make(map[string]interface{})
-		out[t.Text] = val
+		out := json.OrderedObject{{Key: t.Text, Value: val}}
 		return out, nil
 
 	case t.Typ == TypQuotedKey:
@@ -487,14 +498,7 @@ func ungronTokens(ts []Token) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		key := ""
-		err = json.Unmarshal([]byte(t.Text), &key)
-		if err != nil {
-			return nil, fmt.Errorf("invalid quoted key `%s`", t.Text)
-		}
-
-		out := make(map[string]interface{})
-		out[key] = val
+		out := json.OrderedObject{{Key: strings.Trim(t.Text, `"`), Value: val}}
 		return out, nil
 
 	case t.Typ == TypNumericKey:
@@ -522,12 +526,19 @@ func ungronTokens(ts []Token) (interface{}, error) {
 func recursiveMerge(a, b interface{}) (interface{}, error) {
 	switch a.(type) {
 
-	case map[string]interface{}:
-		bMap, ok := b.(map[string]interface{})
+	case json.OrderedObject:
+		bCast, ok := b.(json.OrderedObject)
 		if !ok {
-			return nil, fmt.Errorf("cannot merge object with non-object")
+			return nil, fmt.Errorf("cannot merge OrderedObject with non-OrderedObject %s", reflect.TypeOf(b))
 		}
-		return recursiveMapMerge(a.(map[string]interface{}), bMap)
+		return recursiveOrderedMerge(a.(json.OrderedObject), bCast)
+
+	case map[string]interface{}:
+		bCast, ok := b.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("cannot merge map with non-map %s", reflect.TypeOf(b))
+		}
+		return recursiveMapMerge(a.(map[string]interface{}), bCast)
 
 	case []interface{}:
 		bSlice, ok := b.([]interface{})
@@ -541,11 +552,31 @@ func recursiveMerge(a, b interface{}) (interface{}, error) {
 		return b, nil
 
 	default:
-		return nil, fmt.Errorf("unexpected data type for merge: `%s`", reflect.TypeOf(a))
+		return nil, fmt.Errorf("unexpected data type for merge: %s is %s", a, reflect.TypeOf(a))
 	}
 }
 
-// recursiveMapMerge recursively merges map[string]interface{} values
+func recursiveOrderedMerge(a, b json.OrderedObject) (json.OrderedObject, error) {
+	for _, bMember := range b {
+		var found bool
+		for i, aMember := range a {
+			if bMember.Key == aMember.Key {
+				found = true
+				merged, err := recursiveMerge(aMember.Value, bMember.Value)
+				if err != nil {
+					return nil, err
+				}
+				a[i].Value = merged
+			}
+		}
+		if !found {
+			a = append(a, bMember)
+		}
+	}
+
+	return a, nil
+}
+
 func recursiveMapMerge(a, b map[string]interface{}) (map[string]interface{}, error) {
 	// Merge keys from b into a
 	for k, v := range b {

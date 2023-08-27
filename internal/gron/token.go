@@ -2,9 +2,10 @@ package gron
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"unicode"
+
+	json "github.com/virtuald/go-ordered-json"
 )
 
 // A Token is a chunk of text from a statement with a type
@@ -96,9 +97,7 @@ func (t Token) formatColor() string {
 func valueTokenFromInterface(v interface{}) Token {
 	switch vv := v.(type) {
 
-	case map[interface{}]interface{}:
-		return Token{"{}", TypEmptyObject}
-	case map[string]interface{}:
+	case map[interface{}]interface{}, map[string]interface{}, json.OrderedObject:
 		return Token{"{}", TypEmptyObject}
 	case []interface{}:
 		return Token{"[]", TypEmptyArray}

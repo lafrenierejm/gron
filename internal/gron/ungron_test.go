@@ -1,8 +1,13 @@
 package gron
 
 import (
+	"bytes"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
+
+	json "github.com/virtuald/go-ordered-json"
 )
 
 func TestLex(t *testing.T) {
@@ -193,11 +198,15 @@ func TestLex(t *testing.T) {
 
 func TestTokensSimple(t *testing.T) {
 	in := `json.contact["e-mail"][0] = "mail@tomnomnom.com";`
-	want := map[string]interface{}{
-		"json": map[string]interface{}{
-			"contact": map[string]interface{}{
-				"e-mail": []interface{}{
-					"mail@tomnomnom.com",
+	want := json.OrderedObject{
+		{
+			Key: "json",
+			Value: json.OrderedObject{
+				{
+					Key: "contact",
+					Value: json.OrderedObject{
+						{Key: "e-mail", Value: []interface{}{"mail@tomnomnom.com"}},
+					},
 				},
 			},
 		},
@@ -239,37 +248,79 @@ func TestTokensInvalid(t *testing.T) {
 }
 
 func TestMerge(t *testing.T) {
-	a := map[string]interface{}{
-		"json": map[string]interface{}{
-			"contact": map[string]interface{}{
-				"e-mail": []interface{}{
-					0: "mail@tomnomnom.com",
+	a := json.OrderedObject{
+		json.Member{
+			Key: "json", Value: json.OrderedObject{
+				json.Member{
+					Key: "contact", Value: json.OrderedObject{
+						json.Member{
+							Key: "e-mail", Value: json.OrderedObject{
+								json.Member{
+									Key:   "0",
+									Value: "mail@tomnomnom.com",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 
-	b := map[string]interface{}{
-		"json": map[string]interface{}{
-			"contact": map[string]interface{}{
-				"e-mail": []interface{}{
-					1: "test@tomnomnom.com",
-					3: "foo@tomnomnom.com",
+	b := json.OrderedObject{
+		json.Member{
+			Key: "json", Value: json.OrderedObject{
+				json.Member{
+					Key: "contact", Value: json.OrderedObject{
+						json.Member{
+							Key: "e-mail", Value: json.OrderedObject{
+								{
+									Key:   "1",
+									Value: "test@tomnomnom.com",
+								},
+								{
+									Key:   "3",
+									Value: "foo@tomnomnom.com",
+								},
+							},
+						},
+						json.Member{
+							Key:   "twitter",
+							Value: "@TomNomNom",
+						},
+					},
 				},
-				"twitter": "@TomNomNom",
 			},
 		},
 	}
 
-	want := map[string]interface{}{
-		"json": map[string]interface{}{
-			"contact": map[string]interface{}{
-				"e-mail": []interface{}{
-					0: "mail@tomnomnom.com",
-					1: "test@tomnomnom.com",
-					3: "foo@tomnomnom.com",
+	want := json.OrderedObject{
+		{
+			Key: "json", Value: json.OrderedObject{
+				{
+					Key: "contact", Value: json.OrderedObject{
+						{
+							Key: "e-mail", Value: json.OrderedObject{
+								{
+									Key:   "0",
+									Value: "mail@tomnomnom.com",
+								},
+								{
+									Key:   "1",
+									Value: "test@tomnomnom.com",
+								},
+								{
+									Key:   "3",
+									Value: "foo@tomnomnom.com",
+								},
+							},
+						},
+						{
+							Key:   "twitter",
+							Value: "@TomNomNom",
+						},
+					},
 				},
-				"twitter": "@TomNomNom",
 			},
 		},
 	}
@@ -283,8 +334,116 @@ func TestMerge(t *testing.T) {
 
 	t.Logf("Have: %#v", have)
 	t.Logf("Want: %#v", want)
-	eq := reflect.DeepEqual(have, want)
-	if !eq {
+	if !reflect.DeepEqual(have, want) {
 		t.Errorf("Have and want datastructures are unequal")
+	}
+}
+
+func TestUngron(t *testing.T) {
+	cases := []struct {
+		inFile  string
+		outFile string
+	}{
+		{"testdata/one.gron", "testdata/one.json"},
+		{"testdata/two.gron", "testdata/two.json"},
+		{"testdata/three.gron", "testdata/three.json"},
+		{"testdata/grep-separators.gron", "testdata/grep-separators.json"},
+		{"testdata/github.sorted.gron", "testdata/github.json"},
+		// {"testdata/large-line.gron", "testdata/large-line.json", true},
+		{"testdata/duplicate-numeric.gron", "testdata/duplicate-numeric.json"},
+	}
+
+	for _, c := range cases {
+		wantF, err := ioutil.ReadFile(c.outFile)
+		if err != nil {
+			t.Fatalf("failed to open want file: %s", err)
+		}
+
+		var want interface{}
+		err = json.Unmarshal(wantF, &want)
+		if err != nil {
+			t.Fatalf("failed to unmarshal JSON from want file: %s", err)
+		}
+
+		in, err := os.Open(c.inFile)
+		if err != nil {
+			t.Fatalf("failed to open input file: %s", err)
+		}
+
+		out := &bytes.Buffer{}
+		code, err := Ungron(in, out, false, false)
+
+		if code != exitOK {
+			t.Errorf("want exitOK; have %d", code)
+		}
+		if err != nil {
+			t.Errorf("want nil error; have %s", err)
+		}
+
+		var have interface{}
+		err = json.Unmarshal(out.Bytes(), &have)
+		if err != nil {
+			t.Fatalf("failed to unmarshal JSON from ungron output: %s", err)
+		}
+
+		if !reflect.DeepEqual(want, have) {
+			t.Logf("want: %#v", want)
+			t.Logf("have: %#v", have)
+			t.Errorf("ungronned %s does not match %s", c.inFile, c.outFile)
+		}
+
+	}
+}
+
+func TestUngronJ(t *testing.T) {
+	cases := []struct {
+		inFile  string
+		outFile string
+	}{
+		{"testdata/one.jgron", "testdata/one.json"},
+		{"testdata/two.jgron", "testdata/two.json"},
+		{"testdata/three.jgron", "testdata/three.json"},
+		{"testdata/github.jgron", "testdata/github.json"},
+	}
+
+	for _, c := range cases {
+		wantF, err := ioutil.ReadFile(c.outFile)
+		if err != nil {
+			t.Fatalf("failed to open want file: %s", err)
+		}
+
+		var want interface{}
+		err = json.Unmarshal(wantF, &want)
+		if err != nil {
+			t.Fatalf("failed to unmarshal JSON from want file: %s", err)
+		}
+
+		in, err := os.Open(c.inFile)
+		if err != nil {
+			t.Fatalf("failed to open input file: %s", err)
+		}
+
+		out := &bytes.Buffer{}
+		code, err := Ungron(in, out, true, false)
+
+		if code != exitOK {
+			t.Errorf("want exitOK; have %d", code)
+		}
+		if err != nil {
+			t.Errorf("want nil error; have %s", err)
+		}
+
+		var have interface{}
+		err = json.Unmarshal(out.Bytes(), &have)
+		if err != nil {
+			t.Fatalf("failed to unmarshal JSON from ungron output: %s", err)
+		}
+
+		if !reflect.DeepEqual(want, have) {
+			t.Logf("want: %#v", want)
+			t.Logf("have: %#v", have)
+			t.Errorf("ungronned %s does not match %s", c.inFile, c.outFile)
+		}
+
 	}
 }

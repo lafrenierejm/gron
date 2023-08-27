@@ -1,8 +1,9 @@
 package gron
 
 import (
-	"encoding/json"
 	"io"
+
+	json "github.com/virtuald/go-ordered-json"
 
 	"gopkg.in/yaml.v3"
 )
@@ -16,11 +17,14 @@ type Decoder interface {
 	Decode(interface{}) error
 }
 
-func MakeDecoder(r io.Reader, asYaml bool) Decoder {
+func MakeDecoder(r io.Reader, asYaml bool, sort bool) Decoder {
 	if asYaml {
 		return yaml.NewDecoder(r)
 	} else {
 		d := json.NewDecoder(r)
+		if !sort {
+			d.UseOrderedObject()
+		}
 		d.UseNumber()
 		return d
 	}
