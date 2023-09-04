@@ -31,12 +31,12 @@
             overlays = [ inputs.gomod2nix.overlays.default (final: prev: { }) ];
             config = { };
           };
+          version = inputs.self.shortRev or "development";
           gron = pkgs.buildGoApplication {
+            inherit version;
             pname = "gron";
-            version = self'.shortRev or "dirty";
-            # In 'nix develop', we don't need a copy of the source tree
-            # in the Nix store.
             src = ./.;
+            ldflags = [ "-X github.com/lafrenierejm/gron/cmd.Version=${version}" ];
             modules = ./gomod2nix.toml;
             meta = with pkgs.lib; {
               description =
@@ -50,7 +50,7 @@
           # Per-system attributes can be defined here. The self' and inputs'
           # module parameters provide easy access to attributes of the same
           # system.
-          packages = rec {
+          packages = {
             inherit gron;
             default = gron;
           };

@@ -17,12 +17,12 @@ import (
 	json "github.com/virtuald/go-ordered-json"
 )
 
-var version = "0.8.1"
+var Version = "development"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "gron",
-	Version: version,
+	Version: Version,
 	Short:   "Transform JSON or YAML into discrete assignments to make it greppable",
 	Long: `gron transforms JSON or YAML (from a file, URL, or stdin) into discrete assignments to make it easier to grep for what you want and see the absolute "path" to it.
 

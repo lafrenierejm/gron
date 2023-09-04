@@ -28,7 +28,7 @@ func getURL(url string, insecure bool) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("gron/%s", version))
+	req.Header.Set("User-Agent", fmt.Sprintf("gron/%s", Version))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
