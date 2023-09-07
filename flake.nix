@@ -53,6 +53,13 @@
           packages = {
             inherit gron;
             default = gron;
+            gronWithFallback = pkgs.writeShellApplication {
+              name = "gron-with-fallback";
+              runtimeInputs = [ gron ];
+              text = ''
+               gron "$1" 2>/dev/null || cat "$1"
+              '';
+            };
           };
 
           apps.default = gron;
