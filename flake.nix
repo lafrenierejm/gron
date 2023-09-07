@@ -56,9 +56,7 @@
             gronWithFallback = pkgs.writeShellApplication {
               name = "gron-with-fallback";
               runtimeInputs = [ gron ];
-              text = ''
-               gron "$1" 2>/dev/null || cat "$1"
-              '';
+              text = builtins.readFile ./gron-with-fallback.sh;
             };
           };
 
