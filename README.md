@@ -32,18 +32,12 @@ $ gron "https://api.github.com/repos/tomnomnom/gron/commits?per_page=1" | fgrep 
 
 ## Installation
 
-`gron` has no runtime dependencies. You can just [download a binary for Linux, Mac, Windows or FreeBSD and run it](https://github.com/tomnomnom/gron/releases).
+`gron` has no runtime dependencies. You can just [download a binary for Linux, Mac, Windows or FreeBSD and run it](https://github.com/lafrenierejm/gron/releases).
 Put the binary in your `PATH` (e.g. in `/usr/local/bin`) to make it easy to use:
 
 ```shell
 tar xzf gron-linux-amd64-0.1.5.tgz
 sudo mv gron /usr/local/bin/
-```
-
-If you're a Mac user you can also [install gron via brew](http://braumeister.org/formula/gron):
-
-```shell
-brew install gron
 ```
 
 Or if you're a Go user you can use `go install`:
@@ -237,38 +231,31 @@ If you get creative you can do [some pretty neat tricks with gron](ADVANCED.mkd)
 
 Run `gron --help` for help:
 
+<!-- `$ gron --help` as txt -->
 ```txt
-Transform JSON (from a file, URL, or stdin) into discrete assignments to make it greppable
-
-Usage:
-  gron [OPTIONS] [FILE|URL|-]
-
-Options:
-  -u, --ungron     Reverse the operation (turn assignments back into JSON)
-  -v, --values     Print just the values of provided assignments
-  -c, --colorize   Colorize output (default on tty)
-  -m, --monochrome Monochrome (don't colorize output)
-  -s, --stream     Treat each line of input as a separate JSON object
-  -k, --insecure   Disable certificate validation
-  -j, --json       Represent gron data as JSON stream
-  -y, --yaml       Treat input as YAML instead of JSON
-      --no-sort    Don't sort output (faster)
-      --version    Print version information
-
-Exit Codes:
-  0    OK
-  1    Failed to open file
-  2    Failed to read input
-  3    Failed to form statements
-  4    Failed to fetch URL
-  5    Failed to parse statements
-  6    Failed to encode JSON
+gron transforms JSON or YAML (from a file, URL, or stdin) into discrete assignments to make it easier to grep for what you want and see the absolute "path" to it.
 
 Examples:
   gron /tmp/apiresponse.json
   gron http://jsonplaceholder.typicode.com/users/1
   curl -s http://jsonplaceholder.typicode.com/users/1 | gron
   gron http://jsonplaceholder.typicode.com/users/1 | grep company | gron --ungron
+
+Usage:
+  gron [flags]
+
+Flags:
+  -c, --colorize     Colorize output (default on TTY)
+  -h, --help         help for gron
+  -k, --insecure     Disable certificate validation when reading from a URL
+  -j, --json         Represent gron data as JSON stream
+  -m, --monochrome   Do not colorize output
+      --sort         Sort output
+  -s, --stream       Treat each line of input as a separate JSON object
+  -u, --ungron       Reverse the operation (turn assignments back into JSON)
+  -v, --values       Print just the values of provided assignments
+      --version      Print version information
+  -y, --yaml         Treat input as YAML instead of JSON
 ```
 
 ## FAQ

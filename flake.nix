@@ -75,6 +75,7 @@
             settings.formatter = {
               prettier = {
                 excludes = [
+                  "README.md"
                   "internal/gron/testdata/large-line.json"
                   "internal/gron/testdata/long-stream.json"
                   "internal/gron/testdata/scalar-stream.json"
@@ -89,6 +90,7 @@
             settings.hooks = {
               editorconfig-checker.enable = true;
               markdownlint.enable = true;
+              mdsh.enable = true;
               treefmt.enable = true;
               typos = {
                 enable = true;
@@ -105,6 +107,7 @@
             # Inherit all of the pre-commit hooks.
             inputsFrom = [ config.pre-commit.devShell ];
             packages = with pkgs; [
+              (mkGoEnv { pwd = ./.; })
               cobra-cli
               go-tools
               godef
@@ -112,7 +115,6 @@
               gomod2nix
               gopls
               gotools
-              (mkGoEnv { pwd = ./.; })
               nixfmt
               nodePackages.prettier
               typos
