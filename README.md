@@ -43,7 +43,7 @@ sudo mv gron /usr/local/bin/
 Or if you're a Go user you can use `go install`:
 
 ```shell
-go install github.com/tomnomnom/gron@latest
+go install github.com/lafrenierejm/gron@latest
 ```
 
 It's recommended that you alias `ungron` or `norg` (or both!) to `gron --ungron`.
