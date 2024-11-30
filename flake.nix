@@ -90,7 +90,6 @@
             settings.hooks = {
               editorconfig-checker.enable = true;
               markdownlint.enable = true;
-              mdsh.enable = true;
               treefmt.enable = true;
               typos = {
                 enable = true;
