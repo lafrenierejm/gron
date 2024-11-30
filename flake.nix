@@ -2,7 +2,7 @@
   description = "Nix package, app, and devShell for gron";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-root.url = "github:srid/flake-root";
     gomod2nix.url = "github:nix-community/gomod2nix";
@@ -16,19 +16,33 @@
     };
   };
 
-  outputs = inputs:
+  outputs =
+    inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.flake-root.flakeModule
         inputs.pre-commit-hooks-nix.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
-      systems = [ "x86_64-linux" "aarch64-darwin" ];
-      perSystem = { config, self', inputs', system, ... }:
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
+      perSystem =
+        {
+          config,
+          self',
+          inputs',
+          system,
+          ...
+        }:
         let
           pkgs = import inputs.nixpkgs {
             inherit system;
-            overlays = [ inputs.gomod2nix.overlays.default (final: prev: { }) ];
+            overlays = [
+              inputs.gomod2nix.overlays.default
+              (final: prev: { })
+            ];
             config = { };
           };
           version = inputs.self.shortRev or "development";
@@ -39,14 +53,14 @@
             ldflags = [ "-X github.com/lafrenierejm/gron/cmd.Version=${version}" ];
             modules = ./gomod2nix.toml;
             meta = with pkgs.lib; {
-              description =
-                "Transform JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it";
+              description = "Transform JSON or YAML into discrete assignments to make it easier to `grep` for what you want and see the absolute 'path' to it";
               homepage = "https://github.com/lafrenierejm/gron";
               license = licenses.mit;
               maintainers = with maintainers; [ lafrenierejm ];
             };
           };
-        in {
+        in
+        {
           # Per-system attributes can be defined here. The self' and inputs'
           # module parameters provide easy access to attributes of the same
           # system.
@@ -66,10 +80,10 @@
           # source tree was auto formatted.
           treefmt.config = {
             projectRootFile = ".git/config";
-            package = pkgs.treefmt;
             flakeCheck = false; # use pre-commit's check instead
             programs = {
               gofumpt.enable = true;
+              nixfmt.enable = true;
               prettier.enable = true;
             };
             settings.formatter = {
@@ -103,20 +117,16 @@
           };
 
           devShells.default = pkgs.mkShell {
-            # Inherit all of the pre-commit hooks.
-            inputsFrom = [ config.pre-commit.devShell ];
+            inherit (config.pre-commit.devShell) shellHook nativeBuildInputs;
+            # inputsFrom = builtins.attrValues config.pre-commit.devShell;
             packages = with pkgs; [
               (mkGoEnv { pwd = ./.; })
               cobra-cli
               go-tools
               godef
-              gofumpt
               gomod2nix
               gopls
               gotools
-              nixfmt
-              nodePackages.prettier
-              typos
             ];
           };
         };
