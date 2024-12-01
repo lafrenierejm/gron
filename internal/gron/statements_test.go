@@ -23,8 +23,8 @@ func TestStatementsSimple(t *testing.T) {
 		"a quoted": "value",
 		"bool1": true,
 		"bool2": false,
-		"anull": null,
-		"anarr": [1, 1.5],
+		"a_null": null,
+		"an_arr": [1, 1.5],
 		"anob": {
 			"foo": "bar"
 		},
@@ -44,10 +44,10 @@ func TestStatementsSimple(t *testing.T) {
 		`json["a quoted"] = "value";`,
 		`json.bool1 = true;`,
 		`json.bool2 = false;`,
-		`json.anull = null;`,
-		`json.anarr = [];`,
-		`json.anarr[0] = 1;`,
-		`json.anarr[1] = 1.5;`,
+		`json.a_null = null;`,
+		`json.an_arr = [];`,
+		`json.an_arr[0] = 1;`,
+		`json.an_arr[1] = 1.5;`,
 		`json.anob = {};`,
 		`json.anob.foo = "bar";`,
 		`json["else"] = 1;`,
@@ -66,12 +66,12 @@ func TestStatementsSimple(t *testing.T) {
 func TestStatementsSimpleYaml(t *testing.T) {
 	j := []byte(`'': 2
 a quoted: value
-anarr:
+an_arr:
 - 1
 - 1.5
 anob:
   foo: bar
-anull: 
+a_null:
 bool1: true
 bool2: false
 dotted: A dotted value
@@ -91,10 +91,10 @@ id: 66912849`)
 		`yaml["a quoted"] = "value";`,
 		`yaml.bool1 = true;`,
 		`yaml.bool2 = false;`,
-		`yaml.anull = null;`,
-		`yaml.anarr = [];`,
-		`yaml.anarr[0] = 1;`,
-		`yaml.anarr[1] = 1.5;`,
+		`yaml.a_null = null;`,
+		`yaml.an_arr = [];`,
+		`yaml.an_arr[0] = 1;`,
+		`yaml.an_arr[1] = 1.5;`,
 		`yaml.anob = {};`,
 		`yaml.anob.foo = "bar";`,
 		`yaml["else"] = 1;`,
@@ -160,8 +160,8 @@ func BenchmarkFill(b *testing.B) {
 		"a quoted": "value",
 		"bool1": true,
 		"bool2": false,
-		"anull": null,
-		"anarr": [1, 1.5],
+		"a_null": null,
+		"an_arr": [1, 1.5],
 		"anob": {
 			"foo": "bar"
 		},
