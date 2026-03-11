@@ -5,11 +5,11 @@
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-root.url = "github:srid/flake-root";
-    gomod2nix.url = "github:nix-community/gomod2nix";
-    pre-commit-hooks-nix = {
-      url = "github:cachix/pre-commit-hooks.nix";
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    gomod2nix.url = "github:nix-community/gomod2nix";
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,7 +21,7 @@
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.flake-root.flakeModule
-        inputs.pre-commit-hooks-nix.flakeModule
+        inputs.git-hooks.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
       systems = [
@@ -74,10 +74,6 @@
             };
           };
 
-          apps.default = gron;
-
-          # Auto formatters. This also adds a flake check to ensure that the
-          # source tree was auto formatted.
           treefmt.config = {
             projectRootFile = ".git/config";
             flakeCheck = false; # use pre-commit's check instead
@@ -101,6 +97,7 @@
 
           pre-commit = {
             check.enable = true;
+            settings.package = pkgs.prek;
             settings.hooks = {
               editorconfig-checker.enable = true;
               markdownlint.enable = true;
@@ -117,17 +114,22 @@
           };
 
           devShells.default = pkgs.mkShell {
-            inherit (config.pre-commit.devShell) shellHook nativeBuildInputs;
-            # inputsFrom = builtins.attrValues config.pre-commit.devShell;
-            packages = with pkgs; [
-              (mkGoEnv { pwd = ./.; })
-              cobra-cli
-              go-tools
-              godef
-              gomod2nix
-              gopls
-              gotools
+            inherit (config.pre-commit.devShell) shellHook;
+            inputsFrom = [
+              config.pre-commit.devShell
+              config.treefmt.build.devShell
             ];
+            packages =
+              config.pre-commit.settings.enabledPackages
+              ++ (with pkgs; [
+                (mkGoEnv { pwd = ./.; })
+                cobra-cli
+                go-tools
+                godef
+                gomod2nix
+                gopls
+                gotools
+              ]);
           };
         };
     };
