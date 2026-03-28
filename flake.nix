@@ -10,6 +10,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     gomod2nix.url = "github:nix-community/gomod2nix";
+    nix-systems = {
+      url = "github:nix-systems/default";
+      flake = false;
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,10 +28,7 @@
         inputs.git-hooks.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
-      systems = [
-        "x86_64-linux"
-        "aarch64-darwin"
-      ];
+      systems = import inputs.nix-systems;
       perSystem =
         {
           config,
